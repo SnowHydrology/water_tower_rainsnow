@@ -84,7 +84,9 @@ snotel_meta <- snotel_meta %>%
 ################################################################################
 
 # Conversion factor for degrees F to C
+# and inches to mm
 f_to_c = function(x){(x - 32) * (5/9)}
+in_to_mm = function(x){x * 25.4}
 
 # Join snotel t50 to data
 snotel <- left_join(snotel, 
@@ -95,16 +97,24 @@ snotel <- left_join(snotel,
 snotel <- snotel %>% 
   mutate(tavg_c = f_to_c(tavg_f),
          snowfall_in = case_when(tavg_c <= t50 ~ ppt_in,
-                              TRUE ~ 0))
+                              TRUE ~ 0),
+         del_swe_in = c(0, diff(swe_in)))
 
 # Compute monthly snowfall fraction per site
 snotel_snowfall_fraction <- snotel %>% 
   filter(!is.na(ppt_in) & !is.na(snowfall_in)) %>% 
   group_by(site_id, month, year) %>% 
-  summarise(ppt_in = sum(ppt_in), 
-            snowfall_in = sum(snowfall_in),
-            snowfall_frac = snowfall_in / ppt_in,
+  summarise(ppt_mm = sum(ppt_in) %>% in_to_mm(), 
+            snowfall_mm = sum(snowfall_in) %>% in_to_mm(),
+            snowfall_frac = snowfall_mm / ppt_mm, 
             n_obs = n())
+
+# Compute monthly melt per site
+snotel_melt <- snotel %>% 
+  filter(del_swe_in < 0) %>% 
+  group_by(site_id, month, year) %>% 
+  summarise(melt_mm = sum(del_swe_in) %>% in_to_mm(), 
+            melt_days = n())
 
 ################################################################################
 ################################# Export data ##################################
@@ -113,6 +123,8 @@ snotel_snowfall_fraction <- snotel %>%
 saveRDS(object = snotel_snowfall_fraction,
         file = "../data/snotel/processed/snotel_monthly_snowfall_fraction_t50_optimized.RDS")
 
+saveRDS(object = snotel_melt,
+        file = "../data/snotel/processed/snotel_monthly_melt.RDS")
 
 
 
