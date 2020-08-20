@@ -120,6 +120,9 @@ snotel_melt <- snotel %>%
 ################################# Export data ##################################
 ################################################################################
 
+saveRDS(object = snotel,
+        file = "../data/snotel/processed/snotel_daily_formatted.RDS")
+
 saveRDS(object = snotel_snowfall_fraction,
         file = "../data/snotel/processed/snotel_monthly_snowfall_fraction_t50_optimized.RDS")
 
